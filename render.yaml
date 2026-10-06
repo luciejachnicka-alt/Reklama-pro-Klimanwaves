@@ -1,0 +1,21 @@
+# Creates a PAID single-instance service + persistent disk after your review in Render.
+services:
+  - type: web
+    name: klimanwaves
+    runtime: docker
+    plan: starter
+    region: frankfurt
+    numInstances: 1
+    healthCheckPath: /api/health
+    autoDeployTrigger: "off"
+    disk:
+      name: klimanwaves-data
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: APP_ADMIN_TOKEN
+        generateValue: true
+      - key: APP_DATA_DIR
+        value: /data
+      - key: SHOP_ORIGIN
+        value: https://819636.myshoptet.com
