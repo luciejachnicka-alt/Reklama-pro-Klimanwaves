@@ -36,3 +36,6 @@ Nejsou ověřeny produkty, ceny, benefity, doprava, recenze, důvěryhodnost, ko
 - **Meta:** oprávnění reklamního účtu a token získaný oficiálním flow. Ověřit oprávnění, API verzi a app-review požadavky.
 
 Tento seznam je plán integrací, nikoli tvrzení, že aktuální API možnosti byly ověřeny.
+
+## Aktualizace ověření
+Dne 6. října 2026 po aplikaci síťové konfigurace odpověděla homepage e-shopu a dokumentace Shoptetu HTTP 200. Dřívější síťový blok už pro tyto adresy neplatí. Výsledky a zbývající překážky propojení jsou v SHOPTET.md. Kompletní audit e-shopu nebyl proveden.

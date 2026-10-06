@@ -183,7 +183,7 @@ def handler(app):
                 if not self.authorized():
                     return self.send(401,dict(error='Přihlášení vyžadováno.'))
                 return self.send(200,dict(integrations=[
-                    dict(name='Shoptet',status='not_connected',capability='Ruční import skutečných objednávek. API ani změny e-shopu nejsou implementovány.', docs='https://developers.shoptet.com/api/'),
+                    dict(name='Shoptet',status='not_connected',capability='Běžný Shoptet: API propojení vyžaduje schválený doplněk. Aplikace jej zatím nemá. Nyní podporuje ruční zadávání dat; přímý import Shoptet exportů zatím není implementován.', docs='https://developers.shoptet.com/api/'),
                     dict(name='GA4',status='not_connected',capability='Vlastní consent-aware tracker. Odesílání do GA4 není implementováno.',docs='https://developers.google.com/analytics/devguides/collection/protocol/ga4'),
                     dict(name='Google Ads',status='not_connected',capability='Ruční import spend, impressions a clicks. OAuth a publikace vyžadují další fázi.',docs='https://developers.google.com/google-ads/api/docs/oauth/overview'),
                     dict(name='Merchant API',status='not_connected',capability='Produktový feed a OAuth vyžadují další fázi.',docs='https://developers.google.com/merchant/api/overview'),
