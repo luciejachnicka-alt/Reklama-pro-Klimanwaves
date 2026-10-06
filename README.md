@@ -87,3 +87,6 @@ Dashboard zobrazuje celé dostupné období. Celkové CPA/ROAS jsou smíšené p
 ## Struktura
 
 Viz [architektura](docs/ARCHITECTURE.md), [API](docs/API.md) a [tracking](docs/TRACKING.md).
+
+### Přihlášení vlastním heslem
+Při prvním přihlášení použijte soukromý přístupový klíč a nastavte heslo přímo v aplikaci (alespoň 12 znaků). Další přihlášení funguje heslem i na telefonu. Změna hesla je v Rozpočtu a cílech. Původní klíč uchovejte pro obnovu; nezveřejňujte jej. Heslo se ukládá jako scrypt otisk, změna odhlásí ostatní relace. Kódy přes e-mail nejsou zapojené. Přihlášení nepropojuje Shoptet: data se zatím vkládají ručně.

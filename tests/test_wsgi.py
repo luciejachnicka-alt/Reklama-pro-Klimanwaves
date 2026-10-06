@@ -75,3 +75,30 @@ class WSGITests(unittest.TestCase):
         compile(code, '<wsgi config>', 'exec')
         with self.assertRaises(ValueError): create_wsgi_app(self.tmp.name, 'http://example.com')
         with self.assertRaises(ValueError): wsgi_config('/project', '/data', 'https://example.com/path')
+
+    def test_password_setup_login_reload_change_and_recovery(self):
+        password = 'A test-only long passphrase'
+        cookie = self.login()
+        self.assertEqual(self.request('/api/auth/password', 'POST', {'password': password, 'confirmation': password})['status'], 401)
+        self.assertEqual(self.request('/api/auth/password', 'POST', {'password': 'short', 'confirmation': 'short'}, cookie, self.origin)['status'], 400)
+        result = self.request('/api/auth/password', 'POST', {'password': password, 'confirmation': password}, cookie, self.origin)
+        self.assertEqual(result['status'], 200)
+        self.assertEqual(self.request('/api/state', cookie=cookie)['status'], 401)
+        self.assertEqual(self.request('/api/state', cookie=result['headers']['Set-Cookie'])['status'], 200)
+        stored = (Path(self.tmp.name) / 'password.json').read_text()
+        self.assertNotIn(password, stored)
+        self.assertEqual((Path(self.tmp.name) / 'password.json').stat().st_mode & 0o777, 0o600)
+        reloaded = create_wsgi_app(self.tmp.name, self.origin)
+        self.assertEqual(self.request('/api/login', 'POST', {'password': 'incorrect'}, application=reloaded)['status'], 401)
+        result = self.request('/api/login', 'POST', {'password': password}, application=reloaded)
+        self.assertEqual(result['status'], 200)
+        cookie = result['headers']['Set-Cookie']
+        new = 'Another test-only long passphrase'
+        body = {'password': new, 'confirmation': new}
+        self.assertEqual(self.request('/api/auth/password', 'POST', body, cookie, self.origin, reloaded)['status'], 401)
+        body['current_password'] = password
+        changed = self.request('/api/auth/password', 'POST', body, cookie, self.origin, reloaded)
+        self.assertEqual(changed['status'], 200)
+        self.assertEqual(self.request('/api/login', 'POST', {'password': password}, application=reloaded)['status'], 401)
+        recovered = self.request('/api/auth/password', 'POST', {'password': password, 'confirmation': password, 'token': self.token}, self.login(), self.origin, reloaded)
+        self.assertEqual(recovered['status'], 200)

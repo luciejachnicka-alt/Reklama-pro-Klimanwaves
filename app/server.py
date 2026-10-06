@@ -46,14 +46,51 @@ class Application:
         self.rate_lock = threading.Lock()
         self.rates = {}
 
+    def password_record(self):
+        try:
+            return json.loads((self.data_dir / 'password.json').read_text())
+        except FileNotFoundError:
+            return None
+
+    def password_valid(self, password):
+        if not isinstance(password, str) or not 1 <= len(password) <= 256:
+            return False
+        record = self.password_record()
+        if not record:
+            return False
+        digest = hashlib.scrypt(password.encode(), salt=bytes.fromhex(record['salt']),
+                                n=16384, r=8, p=1).hex()
+        return hmac.compare_digest(digest, record['hash'])
+
+    def set_password(self, password):
+        if not isinstance(password, str) or not 12 <= len(password) <= 256:
+            raise ValueError('Heslo musí mít 12 až 256 znaků. Můžete použít delší větu.')
+        salt = secrets.token_bytes(16)
+        digest = hashlib.scrypt(password.encode(), salt=salt, n=16384, r=8, p=1).hex()
+        target = self.data_dir / 'password.json'
+        temp = self.data_dir / ('password-' + secrets.token_hex(16))
+        fd = os.open(temp, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        try:
+            with os.fdopen(fd, 'w') as f:
+                json.dump(dict(salt=salt.hex(), hash=digest), f)
+                f.flush()
+                os.fsync(f.fileno())
+            os.replace(temp, target)
+        finally:
+            temp.unlink(missing_ok=True)
+
+    def signing_key(self):
+        record = self.password_record()
+        return self.session_key + (record['hash'].encode() if record else b'')
+
     def session(self):
         payload = str(int(time.time()) + 8*3600) + '.' + secrets.token_hex(16)
-        return payload + '.' + hmac.new(self.session_key,payload.encode(),hashlib.sha256).hexdigest()
+        return payload + '.' + hmac.new(self.signing_key(),payload.encode(),hashlib.sha256).hexdigest()
 
     def session_valid(self, value):
         try:
             expiry, nonce, signature = value.split('.')
-            expected = hmac.new(self.session_key,(expiry+'.'+nonce).encode(),hashlib.sha256).hexdigest()
+            expected = hmac.new(self.signing_key(),(expiry+'.'+nonce).encode(),hashlib.sha256).hexdigest()
             return int(expiry) > time.time() and hmac.compare_digest(signature,expected)
         except (ValueError,TypeError):
             return False
@@ -136,9 +173,11 @@ def handler(app):
             path = urlsplit(self.path).path
             if path == '/api/health':
                 return self.send(200,dict(status='ok',version='0.1.0'))
+            if path == '/api/auth/status':
+                return self.send(200,dict(password_set=app.password_record() is not None))
             if path == '/api/state':
                 if not self.authorized():
-                    return self.send(401,dict(error='Přihlaste se správcovským tokenem.'))
+                    return self.send(401,dict(error='Přihlaste se do aplikace.'))
                 return self.send(200,app.store.snapshot())
             if path == '/api/integrations':
                 if not self.authorized():
@@ -171,9 +210,11 @@ def handler(app):
                 if path == '/api/login':
                     if not app.rate(('login',self.client_address[0]),10):
                         return self.send(429,dict(error='Příliš mnoho pokusů. Zkuste to za minutu.'))
-                    value=self.json_body().get('token','')
-                    if not isinstance(value,str) or not hmac.compare_digest(value,app.admin_token):
-                        return self.send(401,dict(error='Neplatný token.'))
+                    data = self.json_body()
+                    value = data.get('token', '')
+                    valid_token = isinstance(value,str) and hmac.compare_digest(value,app.admin_token)
+                    if not (valid_token or app.password_valid(data.get('password', ''))):
+                        return self.send(401,dict(error='Přihlášení se nezdařilo. Zkontrolujte heslo nebo přístupový klíč.'))
                     secure='; Secure' if app.public_origin and app.public_origin.startswith('https://') else ''
                     return self.send(200,dict(ok=True),cookie='kw_session='+app.session()+'; HttpOnly; SameSite=Strict; Path=/; Max-Age=28800'+secure)
                 if not self.authorized():
@@ -181,6 +222,18 @@ def handler(app):
                 if path == '/api/logout':
                     return self.send(200,dict(ok=True),cookie='kw_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0')
                 data=self.json_body()
+                if path == '/api/auth/password':
+                    if not app.rate(('password', self.client_address[0]), 10):
+                        return self.send(429,dict(error='Příliš mnoho pokusů. Zkuste to za minutu.'))
+                    recovery = data.get('token', '')
+                    valid_recovery = isinstance(recovery, str) and hmac.compare_digest(recovery, app.admin_token)
+                    if app.password_record() and not (valid_recovery or app.password_valid(data.get('current_password', ''))):
+                        return self.send(401,dict(error='Pro změnu zadejte současné heslo nebo obnovovací klíč.'))
+                    if data.get('password') != data.get('confirmation'):
+                        raise ValueError('Zadaná hesla se neshodují.')
+                    app.set_password(data.get('password'))
+                    secure = '; Secure' if app.public_origin and app.public_origin.startswith('https://') else ''
+                    return self.send(200,dict(ok=True),cookie='kw_session='+app.session()+'; HttpOnly; SameSite=Strict; Path=/; Max-Age=28800'+secure)
                 routes = {'/api/products':app.store.product,'/api/experiments':app.store.experiment,
                           '/api/import/orders':app.store.import_orders,'/api/import/ads':app.store.import_ads,
                           '/api/actions':app.store.create_action,'/api/settings':app.store.update_settings,
