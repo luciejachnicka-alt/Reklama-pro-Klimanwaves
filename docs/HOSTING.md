@@ -1,11 +1,11 @@
 # Jak získat veřejný odkaz na aplikaci
 
-Doporučená první varianta: **Render, jedna Docker webová služba a trvalý disk**. Render poskytne HTTPS adresu; vlastní doménu zatím nepotřebujete. Jde o placenou variantu — službu nevytvářejte bez kontroly aktuální ceny a platebních podmínek. Žádný účet, placená služba ani veřejná adresa nebyly tímto projektem automaticky vytvořeny.
+**Tato alternativa je placená. Pro požadovaný provoz zdarma použijte [PythonAnywhere postup](FREE_HOSTING.md).** Render poskytne HTTPS adresu, ale zde popsaná služba a disk jsou placené. Žádný účet, placená služba ani veřejná adresa nebyly tímto projektem automaticky vytvořeny.
 
 ## Co je již připraveno
 
 - `Dockerfile` bez dodatečných Python balíčků.
-- `render.yaml`: jedna služba, evropský region, trvalá SQLite databáze na `/data`, health check a automaticky generovaný správcovský secret.
+- `docs/render-paid-example.yaml`: příklad jedné placené služby, evropského regionu, trvalé SQLite databáze na `/data`, health checku a automaticky generovaného správcovského secretu. Z kořene repozitáře byl odstraněn automatický placený Blueprint, aby se při bezplatném nasazování nepoužil omylem.
 - Spuštění odmítne chybějící secret nebo neplatnou HTTPS adresu. Aplikace běží pod neprivilegovaným uživatelem; cookies mají při HTTPS adresaci příznak Secure.
 - Lokální databáze, tokeny, `.env` a Git metadata se nekopírují do obrazu ani do předávacího archivu.
 
@@ -27,7 +27,7 @@ Blueprint má připravené běžné konfigurační položky, ale aktuální ofic
 ## Postup pro první nasazení
 
 1. Vytvořte si účet na **https://dashboard.render.com/**. Přihlášení provádějte přímo u poskytovatele; heslo neposílejte do chatu.
-2. Do svého GitHub repozitáře `luciejachnicka-alt/Reklama-pro-Klimanwaves` nahrajte zdrojové soubory tohoto projektu včetně `Dockerfile`, `render.yaml`, složek `app/` a `scripts/hosting_start.py`. V GitHubu použijte **Add file → Upload files**, nebo standardní Git push. Nikdy nenahrávejte `.local/`, `.env` nebo přístupové klíče. Samotné vložení ZIPu do repozitáře nestačí; zdroje musí být rozbalené v kořeni.
+2. Pouze pokud chcete placenou variantu, zkopírujte `docs/render-paid-example.yaml` do kořene projektu jako `render.yaml` a nahrajte jej do svého repozitáře spolu se zdroji aplikace. Pro variantu zdarma tento krok nedělejte. Nikdy nenahrávejte `.local/`, `.env` nebo přístupové klíče.
 3. V Renderu zvolte **New → Blueprint**, propojte svůj GitHub účet a vyberte tento repozitář a větev se zdrojovým kódem. Oprávnění GitHubu udělte přes oficiální autorizační obrazovku.
 4. Projděte navrženou službu a trvalý disk. Ověřte aktuální cenu, region a velikost disku. Konfigurace používá placený plán `starter`, není to bezplatný hosting. Teprve potom potvrďte vytvoření služby.
 5. Po úspěšném buildu otevřete skutečnou HTTPS adresu, kterou Render zobrazí u služby. Neodhadujte adresu podle názvu služby. Aplikace si tuto adresu načte z `RENDER_EXTERNAL_URL`; pro vlastní doménu nastavte `APP_PUBLIC_ORIGIN` na její přesnou HTTPS adresu.

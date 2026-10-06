@@ -64,7 +64,9 @@ Tracking SDK je implementováno a otestováno lokálně, ale **není instalován
 
 ## Nasazení a bezpečnost
 
-Pro první hosting je připravena Docker konfigurace a Render Blueprint s trvalým diskem. Viz [podrobný postup nasazení](docs/HOSTING.md). Jde o placený pilot s jedním správcem; účet a službu je nutné vytvořit u poskytovatele. Připravený balíček sám neznamená, že aplikace má veřejnou adresu.
+**Varianta bez placeného hostingu:** připravena WSGI aplikace pro PythonAnywhere. Viz [postup pro bezplatný účet](docs/FREE_HOSTING.md). V této variantě se výsledky vyhodnocují ručně tlačítkem; hodinové background jobs neběží. Aktuální dostupnost a podmínky bezplatného tarifu je nutné ověřit u poskytovatele. Veřejná aplikace zatím není nasazena.
+
+Jako alternativní **placená** varianta je připravena Docker konfigurace a Render Blueprint s trvalým diskem. Viz [postup Renderu](docs/HOSTING.md). Nepoužívejte tuto alternativu, pokud chcete provoz zdarma. Připravený balíček sám neznamená, že aplikace má veřejnou adresu.
 
 - Jediný správce v této fázi; audit rozlišuje autentizovaného správce, nikoli více osob. Nejde o hotové víceklientské SaaS. Pro SaaS budou potřeba tenant isolation, individuální role, spravovaná autentizace a externí audit.
 - Pro veřejný provoz nastavte `APP_PUBLIC_ORIGIN=https://vase-domena`, nasaďte ověřenou HTTPS reverse proxy a případně spusťte `--host 0.0.0.0`. Cookie pak dostane `Secure`, vždy má `HttpOnly` a `SameSite=Strict`. Nepoužívejte samotný standard-library HTTP server jako veřejnou produkční infrastrukturu.
